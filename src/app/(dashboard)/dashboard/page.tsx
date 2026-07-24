@@ -8,26 +8,69 @@ import { FileText } from "lucide-react"
 
 const FREE_LIMIT = 5
 
+interface DashboardData {
+  documentCount: number
+  generationCount: number
+  user: {
+    role: string
+    subscription: { tier: string } | null
+  } | null
+  recentDocs: { id: string; title: string; type: string; createdAt: Date }[]
+  typeCounts: { type: string; _count: { type: number } }[]
+}
+
+async function fetchDashboardData(userId: string): Promise<DashboardData> {
+  const [documentCount, generationCount, user, recentDocs, typeCounts] =
+    await Promise.all([
+      db.document.count({ where: { userId } }),
+      db.aIGeneration.count({ where: { userId } }),
+      db.user.findUnique({
+        where: { id: userId },
+        include: { subscription: true },
+      }),
+      db.document.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, title: true, type: true, createdAt: true },
+      }),
+      db.document.groupBy({
+        by: ["type"],
+        where: { userId },
+        _count: { type: true },
+      }),
+    ])
+
+  return { documentCount, generationCount, user, recentDocs, typeCounts }
+}
+
 export default async function DashboardPage() {
   const { userId } = await auth()
   if (!userId) redirect("/login")
 
-  const [documentCount, generationCount, user, recentDocs, typeCounts] = await Promise.all([
-    db.document.count({ where: { userId } }),
-    db.aIGeneration.count({ where: { userId } }),
-    db.user.findUnique({ where: { id: userId }, include: { subscription: true } }),
-    db.document.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { id: true, title: true, type: true, createdAt: true },
-    }),
-    db.document.groupBy({
-      by: ["type"],
-      where: { userId },
-      _count: { type: true },
-    }),
-  ])
+  let data: DashboardData
+  try {
+    data = await fetchDashboardData(userId)
+  } catch (err) {
+    console.error("[Dashboard] Database error:", err)
+    return (
+      <div className="flex-1 p-8 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">🗄️</div>
+          <h2 className="text-xl font-bold mb-2">Gagal Memuat Data</h2>
+          <p className="text-muted-foreground mb-4">
+            Terjadi kesalahan saat menghubungi database. Silakan coba lagi
+            nanti.
+          </p>
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+            Muat Ulang
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const { documentCount, generationCount, user, recentDocs, typeCounts } = data
 
   const tier = user?.subscription?.tier ?? user?.role ?? "FREE"
   const isFree = tier === "FREE"

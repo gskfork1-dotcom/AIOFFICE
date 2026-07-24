@@ -1,7 +1,17 @@
 "use client"
 
-import { SignIn, SignUp } from "@clerk/nextjs"
+import dynamic from "next/dynamic"
 import Link from "next/link"
+
+const ClerkSignIn = dynamic(
+  () => import("@clerk/nextjs").then((mod) => mod.SignIn),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-slate-100 rounded-lg" /> }
+)
+
+const ClerkSignUp = dynamic(
+  () => import("@clerk/nextjs").then((mod) => mod.SignUp),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-slate-100 rounded-lg" /> }
+)
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   return (
@@ -14,7 +24,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       </div>
 
       {mode === "login" ? (
-        <SignIn
+        <ClerkSignIn
           routing="hash"
           appearance={{
             elements: {
@@ -24,7 +34,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           }}
         />
       ) : (
-        <SignUp
+        <ClerkSignUp
           routing="hash"
           appearance={{
             elements: {
