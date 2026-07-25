@@ -9,8 +9,15 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   const isProd = process.env.NODE_ENV === "production"
 
+  const url = isProd ? process.env.TURSO_DATABASE_URL : "file:./dev.db"
+  if (!url) {
+    throw new Error(
+      "Missing database URL. Set TURSO_DATABASE_URL in your environment variables."
+    )
+  }
+
   const adapter = new PrismaLibSql({
-    url: isProd ? process.env.TURSO_DATABASE_URL! : "file:./dev.db",
+    url,
     authToken: isProd ? process.env.TURSO_AUTH_TOKEN : undefined,
   })
 
