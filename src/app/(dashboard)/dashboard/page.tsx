@@ -6,6 +6,8 @@ import { UserButton } from "@clerk/nextjs"
 import { db } from "@/lib/db"
 import { FileText } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 const FREE_LIMIT = 5
 
 interface DashboardData {
