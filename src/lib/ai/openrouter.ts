@@ -45,7 +45,6 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
         ],
         temperature,
         max_tokens: maxTokens,
-        response_format: { type: "json_object" },
       })
 
       const choice = response.choices[0]

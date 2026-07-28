@@ -45,21 +45,34 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
 
   const userPrompt = buildInvoiceUserPrompt(invoiceInput)
 
-  const result = await generate({
-    tier,
-    systemPrompt: INVOICE_SYSTEM_PROMPT,
-    userPrompt,
-    temperature: 0.3,
-  })
+  let result
+  try {
+    result = await generate({
+      tier,
+      systemPrompt: INVOICE_SYSTEM_PROMPT,
+      userPrompt,
+      temperature: 0.3,
+    })
+  } catch (err) {
+    console.error("[AI] Invoice generation failed:", (err as Error).message)
+    throw new Error("Gagal menghubungi AI. Silakan coba lagi dalam beberapa saat.")
+  }
 
   let invoiceData: InvoiceData
   try {
     invoiceData = JSON.parse(result.content)
   } catch {
+    console.error("[AI] Invoice JSON parse failed, content:", result.content.slice(0, 200))
     throw new Error("AI mengembalikan format yang tidak valid. Silakan coba lagi.")
   }
 
-  const html = renderInvoiceHTML(invoiceData, logoUrl)
+  let html: string
+  try {
+    html = renderInvoiceHTML(invoiceData, logoUrl)
+  } catch (err) {
+    console.error("[AI] Invoice HTML render failed:", (err as Error).message)
+    throw new Error("Gagal membuat tampilan invoice. Silakan coba lagi.")
+  }
 
   const doc = await db.document.create({
     data: {
